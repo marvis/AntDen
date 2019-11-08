@@ -17,7 +17,7 @@ my @cmd =
 
     [ 'addmachine', "添加机器到集群中\n", 'scheduler/tools/addmachine' ],
 
-    [ 'submitjob', "提交作业任务", 'scheduler/tools/submitjob' ],
+    [ 'submitjob', "提交作业任务", 'scheduler/bin/submitjob' ],
 );
 
 AntDen::Util::Command->new( $name => \@cmd,
