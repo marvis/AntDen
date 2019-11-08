@@ -5,6 +5,7 @@ use Carp;
 use YAML::XS;
 
 use Sys::Hostname;
+use File::Basename;
 
 use AE;
 use POSIX qw( :sys_wait_h );
@@ -255,20 +256,29 @@ sub status
 
 sub baseinfo
 {
+    my $this = shift;
+    my %res;
+    for my $name ( grep{ -f }glob "$this->{code}/resources/*" )
+    {
+        my $code = do $name;
+        die "load code $name fail\n" unless $code && ref $code eq 'CODE';
+        $name = basename $name;
+        my $data = &$code();
+        if( ref $data eq 'HASH' )
+        {
+            map{ $res{"$name:$_"} = $data->{$_} }keys %$data; 
+        }
+        else
+        {
+            $res{$name} = $data;
+        }
+    }
     return +{
         machine => +{
             hostname => Sys::Hostname::hostname,
             env => 'web1.0',
         },
-        resources => +
-        {
-            'GPU:0' => 100,
-            'GPU:1' => 100,
-            'GPU:2' => 100,
-            'GPU:3' => 100,
-            'CPU' => 1024,
-            'MEM' => 1024,
-        }
+        resources => \%res,
     }
 }
 1;
