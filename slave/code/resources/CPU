@@ -17,5 +17,5 @@ use strict;
 return sub
 {
     die "get cpu fail" unless `cat /proc/cpuinfo | grep "processor" | wc -l` =~ /(\d+)/;
-    return int $1;
+    return int $1 * 1024;
 };
