@@ -1,7 +1,7 @@
 #!/opt/mydan/perl/bin/perl -I/opt/AntDen/lib
 use strict;
 use warnings;
-use MYDan;
+#use MYDan;
 use YAML::XS;
 use AntDen::Slave;
 
@@ -10,7 +10,8 @@ my %param = %{ YAML::XS::Load( <> ) };
 local $/ = "\n";
 
 eval{
-    my $antden = "$MYDan::PATH/../AntDen/slave";
+    #my $antden = "$MYDan::PATH/../AntDen/slave";
+    my $antden = "/opt/AntDen/slave";
     my $slave = AntDen::Slave->new( 
         db => "$antden/conf/slave.db", 
         task => "$antden/conf/task", 
