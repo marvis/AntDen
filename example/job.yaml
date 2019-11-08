@@ -1,0 +1,9 @@
+-
+  executer: exec
+  exec: 'sleep 100'
+  resources:
+    env: web1.0
+    count: 2
+    resources:
+      CPU: 2
+      MEM: 3

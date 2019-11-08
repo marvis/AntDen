@@ -1,0 +1,7 @@
+*.swp
+*.old
+*.bak
+J.*
+*.db
+t/
+logs/
