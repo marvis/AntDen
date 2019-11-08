@@ -1,0 +1,103 @@
+#!/opt/mydan/perl/bin/perl -I/opt/AntDen/lib
+use strict;
+use warnings;
+use AntDen;
+
+use MYDan::Util::OptConf;
+use MYDan::Agent::Client;
+use AntDen::Scheduler;
+
+$| ++;
+
+$MYDan::Util::OptConf::THIS = 'antden';
+
+=head1 SYNOPSIS
+
+ $0 hostip hostip2 hostip3 ...
+
+=cut
+
+my $option = MYDan::Util::OptConf->load();
+my %o = $option->get()->dump();
+
+$option->assert() unless @ARGV;
+
+for my $host ( @ARGV )
+{
+    print "addMachine: $host\n";
+    unless( $host =~ /^\d+\.\d+\.\d+\.\d+$/ )
+    {
+        warn "[ERR] format error. you must use ip to add\n";
+        next;
+    }
+    my $c = getinfo( $host );
+    print YAML::XS::Dump $c;
+    unless( 
+            $c->{machine} && ref $c->{machine} eq 'HASH' 
+         && $c->{resources} && ref $c->{resources} eq 'HASH'
+         && $c->{machine}{hostname} && $c->{machine}{env}
+         && keys( %{$c->{resources}} ) )
+    {
+        warn "[ERR] format error.\n";
+        next;
+    }
+
+#    +{
+#        machine => +{
+#            ip => '127.0.0.1',
+#            hostname => 'feng-pc',
+#            env => 'web1.0',
+#            status => 'active',
+#            heartbeat => time,
+#        },
+#        resources => +
+#        {
+#            'GPU:0' => 100,
+#            'GPU:1' => 100,
+#            'GPU:2' => 100,
+#            'GPU:3' => 100,
+#            'CPU' => 1024,
+#            'MEM' => 1024,
+#        }
+#    }
+    AntDen::Scheduler->new( %{$o{scheduler}} )->addMachine(
+        +{
+            machine => +{
+                %{$c->{machine}},
+                ip => $host,
+                status => 'active',
+                heartbeat => time,
+            },
+            resources => $c->{resources}
+        }
+    );
+
+}
+
+sub getinfo
+{
+    my $hostip = shift;
+    my %opt =  MYDan::Util::OptConf->load()->dump('agent');
+    $opt{user} = 'antden';
+    $opt{sudo} = 'root';
+    my %query = ( 
+        code => 'antden', 
+        argv => +{ 
+            ctrl => 'baseinfo', 
+            config => + { } 
+        }, 
+        map{ $_ => $opt{$_} }qw( user sudo ) 
+    );
+    
+    my %result = MYDan::Agent::Client->new( $hostip )->run( %opt, query => \%query );
+    if( defined $result{$hostip} && $result{$hostip} =~ s/--- 0\n// )
+    {
+        my $c = eval{ YAML::XS::Load $result{$hostip}; };
+        warn sprintf "[ERR] call $hostip fail:%s\n", $@ if $@;
+        return $c if $c && ref $c eq 'HASH';
+
+    }
+    warn sprintf "[ERR] call $hostip fail:%s\n", YAML::XS::Dump \%result;
+    return;
+}
+

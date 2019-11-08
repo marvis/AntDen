@@ -4,6 +4,8 @@ use warnings;
 use Carp;
 use YAML::XS;
 
+use Sys::Hostname;
+
 use AE;
 use POSIX qw( :sys_wait_h );
 use AntDen::Slave::DB;
@@ -15,7 +17,7 @@ sub new
     my ( $class, %this ) = @_;
 
     die "error db undefind" unless $this{db};
-    die "error config undefind"
+    die "error task undefind"
         unless $this{task} && -d $this{task};
 
     $this{db} = AntDen::Slave::DB->new( $this{db} );
@@ -251,4 +253,22 @@ sub status
     return \@r;
 }
 
+sub baseinfo
+{
+    return +{
+        machine => +{
+            hostname => Sys::Hostname::hostname,
+            env => 'web1.0',
+        },
+        resources => +
+        {
+            'GPU:0' => 100,
+            'GPU:1' => 100,
+            'GPU:2' => 100,
+            'GPU:3' => 100,
+            'CPU' => 1024,
+            'MEM' => 1024,
+        }
+    }
+}
 1;

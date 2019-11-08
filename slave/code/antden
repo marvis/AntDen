@@ -1,0 +1,32 @@
+#!/opt/mydan/perl/bin/perl -I/opt/AntDen/lib
+use strict;
+use warnings;
+use MYDan;
+use YAML::XS;
+use AntDen::Slave;
+
+local $/ = undef;
+my %param = %{ YAML::XS::Load( <> ) };
+local $/ = "\n";
+
+my $antden = "$MYDan::PATH/../AntDen/slave";
+my $slave = AntDen::Slave->new( 
+    db => "$antden/conf/slave.db", 
+    task => "$antden/conf/task", 
+    code => "$antden/code"
+);
+
+my $ctrl = $param{argv}{ctrl};
+if( $ctrl eq 'start'  )
+{
+    $slave->start( $param{argv}{config} );
+}elsif( $ctrl eq 'stop' )
+{
+    $slave->start( $param{argv}{config} );
+}
+elsif( $ctrl eq 'baseinfo' )
+{
+    print YAML::XS::Dump $slave->baseinfo();
+}
+
+exit 0;
