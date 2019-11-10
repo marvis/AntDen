@@ -8,23 +8,22 @@ my %define = (
     task => [
         id => 'INTEGER PRIMARY KEY AUTOINCREMENT',
         taskid => 'TEXT NOT NULL UNIQUE',
-        status => 'TEXT NOT NULL', #init starting running stopping stoped
-        expect => 'TEXT NOT NULL', #running stoped
+        status => 'INTEGER NOT NULL', #init: 1 starting: 2 running: 3 stopping: 4 stoped: 5
+        expect => 'INTEGER NOT NULL', #running: 3 stoped: 5
         executeid => 'TEXT NOT NULL',
         msg => 'TEXT NOT NULL',
     ]
 );
 
 my %stmt = (
-    startTask => "insert into `task` (`taskid`,`status`, `expect`, `executeid`,`msg`) values(?,'init','running','','')",
-    stopTask => "update task set expect='stoped' where taskid=? and expect='running'",
+    startTask => "insert into `task` (`taskid`,`status`, `expect`, `executeid`,`msg`) values(?,1,3,'','')",
+    stopTask => "update task set expect=5 where taskid=? and expect=3",
 
-    selectTaskWork => "select `taskid`,`status`,`expect`,`executeid`,`msg` from task where status != expect and status != 'starting' and status != 'stopping'",
-    selectTaskRunning => "select `taskid`,`executeid` from task where status == expect and status='running'",
+    selectTaskWork => "select `taskid`,`status`,`expect`,`executeid`,`msg` from task where expect > status or status==?",
 
-    updateTaskStatusAndMsg => "update task set status=?,msg=? where taskid=?",
-    updateExecuteid => "update task set executeid=?,status='running' where taskid=?",
+    updateExecuteid => "update task set executeid=?,status=3 where taskid=?",
     updateTaskStatus => "update task set status=? where taskid=?",
+    updateTaskMsg => "update task set msg=? where taskid=?",
 
     selectTask => "select `taskid`,`status`,`expect`,`executeid`,`msg` from task",
 );
