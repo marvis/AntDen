@@ -24,7 +24,10 @@ eval{
         $slave->start( $param{argv}{config} );
     }elsif( $ctrl eq 'stop' )
     {
-        $slave->start( $param{argv}{config} );
+        $slave->stop( $param{argv}{config} );
+    }elsif( $ctrl eq 'status' )
+    {
+         print YAML::XS::Dump $slave->status( $param{argv}{deletetask} );
     }
     elsif( $ctrl eq 'baseinfo' )
     {

@@ -319,9 +319,16 @@ sub stop
 
 sub status
 {
-	my $this = shift;
+    my ( $this, $deletetask  ) = @_;
+
+    if( $deletetask )
+    {
+    	map{ $this->{db}->deleteTask($_); }@$deletetask;
+	$this->{db}->commit();
+    }
     my @r = $this->{db}->selectTask();
-    return \@r;
+    my %re = map{ $_->[0] => $this->{idstatus}{$_->[1]} }@r;
+    return \%re;
 }
 
 sub baseinfo
