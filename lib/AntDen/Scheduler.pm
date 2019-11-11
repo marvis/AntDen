@@ -159,7 +159,7 @@ sub stopJob
 {
     my ( $this, $jobid ) = @_;
     
-    $this->{db}->stopJobExpect( $jobid );
+    $this->{db}->stopJobExpect( "$jobid%" );
     $this->{db}->commit();
 }
 

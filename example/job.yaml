@@ -9,7 +9,7 @@
       MEM: 3
 -
   executer: exec
-  exec: 'sleep 180'
+  exec: 'sleep 1080'
   resources:
     env: web1.0
     count: 1
