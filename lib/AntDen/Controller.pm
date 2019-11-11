@@ -52,13 +52,15 @@ sub run
 		    %slavedeletetaskid = ();
 			for my $tid ( keys %$res )
 			{
-				my $s = $statusid->{$res->{$tid}};
-				$db->updateControllerStatusSafe($s, $tid, $s);
-				$db->commit;
 				if( $res->{$tid} eq 'stoped' )
 				{
 					$slavedeletetaskid{$tid} = 1;
+					$this->callback( $tid );
 				}
+
+				my $s = $statusid->{$res->{$tid}};
+				$db->updateControllerStatusSafe($s, $tid, $s);
+				$db->commit;
 			}
 
 		}
@@ -217,6 +219,20 @@ sub stop
 
 	$this->{db}->updateControllerExpect( $this->{statusid}{stoped}, $conf->{taskid} );
     $this->{db}->commit;
+}
+
+=head3 callback( $conf )
+
+	taskid: J.20191105.171023.154687.409.002
+
+=cut
+
+sub callback
+{
+	my ( $this, $taskid ) = @_;
+
+	$this->{db}->deleteAllocated( $taskid );
+	$this->{db}->commit;
 }
 
 

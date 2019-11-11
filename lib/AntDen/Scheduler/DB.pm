@@ -23,7 +23,7 @@ my %define = (
         name => 'TEXT NOT NULL',
         id => 'TEXT NOT NULL',
         value => 'TEXT NOT NULL',
-        jobid => 'TEXT NOT NULL',
+        taskid => 'TEXT NOT NULL',
     ],
     queue => [
         id => 'INTEGER PRIMARY KEY AUTOINCREMENT',
@@ -66,6 +66,7 @@ my %stmt = (
     #ip, name, id, value, hostname, env
     selectResourcesAndActiveMachineInfo => "select resources.ip,hostname,env,name,id,value from machine,resources where machine.ip=resources.ip and status='active'",
     selectAllocated => "select ip,name,id,value from allocated",
+    deleteAllocated => "delete from allocated where taskid=?",
     insertAllocatedByJobid => "insert into allocated values(?,?,?,?,?)",
 
     selectControllerWork => "select `taskid`,`hostip`,`status`,`expect` from controller where expect>status",
