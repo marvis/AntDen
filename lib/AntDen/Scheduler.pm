@@ -165,8 +165,6 @@ sub stopJob
 
 =head3 showQueue
 
-    jobid
-
 =cut 
 sub getQueue
 {
@@ -174,6 +172,20 @@ sub getQueue
     my @queue = $this->{db}->showQueue();
 	$this->{db}->commit;
 	return @queue;
+}
+
+=head3 showMachine
+
+=cut 
+sub getMachine
+{
+    my $this = shift;
+    my @machine = $this->{db}->showMachine();
+    my @resources = $this->{db}->showResources();
+	$this->{db}->commit;
+	my %resources;
+	map{ push @{$resources{$_->[0]}}, [$_->[1],$_->[2],$_->[3]]}@resources;
+	return \@machine, \%resources;
 }
 
 =head3 run

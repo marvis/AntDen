@@ -56,6 +56,9 @@ my %stmt = (
     stopJobExpect => "update controller set expect=8 where taskid like ?",
 
 	##
+    showMachine => "select `ip`,`hostname`,`env`,`status` from machine",
+    showResources => "select `ip`,`name`,`id`,`value` from resources",
+
     insertMachine => "insert into machine (`ip`,`hostname`,`env`,`status`,`heartbeat`) values(?,?,?,?,?)",
     insertResources => "insert into `resources` ( `ip`,`name`,`id`,`value`) values(?,?,?,?)",
 
