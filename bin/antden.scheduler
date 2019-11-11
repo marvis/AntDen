@@ -15,7 +15,8 @@ my @cmd =
     [ 'status', "查看scheduler状态", 'scheduler/tools/status' ],
     [ 'tail', "查看scheduler日志\n", 'scheduler/tools/tail' ],
 
-    [ 'addmachine', "添加机器到集群中\n", 'scheduler/tools/addmachine' ],
+    [ 'addmachine', "添加机器到集群中", 'scheduler/tools/addmachine' ],
+    [ 'showmachine', "列出集群中机器\n", 'scheduler/tools/showmachine' ],
 
     [ 'submitjob', "提交作业任务", 'scheduler/bin/submitjob' ],
     [ 'renicejob', "调整已提交作业的优先级", 'scheduler/bin/renicejob' ],
