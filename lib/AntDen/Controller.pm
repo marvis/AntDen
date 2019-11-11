@@ -15,6 +15,22 @@ sub new
     my ( $class, %this ) = @_;
     die "error db undefind" unless $this{db};
     die "error code undefind" unless $this{code};
+
+    my %statusid = (
+		standby => 1,
+	    init => 2,
+	    starting1 => 3,
+	    starting => 4,
+	    running => 5,
+	    stopping1 => 6,
+	    stopping => 7,
+	    stoped => 8,
+	);
+
+	my %idstatus = map{ $statusid{$_} => $_ }keys %statusid;
+	$this{statusid} = \%statusid;
+	$this{idstatus} = \%idstatus;
+
     $this{db} = AntDen::Scheduler::DB->new( $this{db} );
     bless \%this, ref $class || $class;
 }
@@ -23,68 +39,110 @@ sub run
 {
     my $this = shift;
 
-#    my $cv = AE::cv;
+    my ( $db, $config, $idstatus, $statusid ) = @$this{qw( db config idstatus statusid )};
 
-    my ( $db, $config ) = @$this{qw( db config )};
 
-#    my $ctrw = AnyEvent->timer ( after => 1, interval => 1, cb => sub{
+	my %slavedeletetaskid;
+    while(1)
+    {
+		my @hostip = $db->selectControllerHostip();
+		if( @hostip > 0 )
+		{
+			my ( $res, $err ) = $this->_getSlaveStatus( [map{$_->[0]}@hostip], [ keys %slavedeletetaskid ] );
+		    %slavedeletetaskid = ();
+			for my $tid ( keys %$res )
+			{
+				my $s = $statusid->{$res->{$tid}};
+				$db->updateControllerStatusSafe($s, $tid, $s);
+				$db->commit;
+				if( $res->{$tid} eq 'stoped' )
+				{
+					$slavedeletetaskid{$tid} = 1;
+				}
+			}
 
-while(1)
-{
+		}
         my @work = $db->selectControllerWork();
-
-        
+    
         for ( @work )
         {
             #`taskid`,`hostip`,`status`,`expect` 
             my ( $taskid, $hostip, $status, $expect ) = @$_;
-            print "taskid: $taskid status: $status expect: $expect\n";
-            
-                if( $expect eq 'running' )
-                {
-                    if( $status eq 'init' )
-                    {
-                        if( $this->_controlSlave( $taskid, $hostip, 'start' ) )
-                        {
-                            $db->updateControllerStatus( 'starting', $taskid );
-                            $db->commit;
-                        }
+            print "taskid: $taskid status: $idstatus->{$status} expect: $idstatus->{$expect}\n";
 
-                    }
-                    else
-                    {
-                        next;
-                    }
-                }
-                else #$expect eq 'stoped'
-                {
-                    if( $status eq 'init' || $status eq 'running' )
-                    {
-                        if( $this->_controlSlave( $taskid, $hostip, 'stop' ) )
-                        {
-                            $db->updateControllerStatus( 'stopping', $taskid );
-                            $db->commit;
-                        }
-                    }
-                    else
-                    {
-                        next;
-                    }
-                }
-            
+			if( $idstatus->{$status} eq 'init' )
+			{
+				if( $idstatus->{$expect} eq 'stoped' )
+				{
+					$db->updateControllerStatus( $statusid->{stoped}, $taskid );
+					$db->commit();
+				}
+				else
+				{
+        	        if( $this->_controlSlave( $taskid, $hostip, 'start' ) )
+					{
+						$db->updateControllerStatus( $statusid->{starting1}, $taskid );
+						$db->commit();
+					}
+				}
+			}
+
+			if( $idstatus->{$status} eq 'running' )
+			{
+        	    if( $this->_controlSlave( $taskid, $hostip, 'stop' ) )
+				{
+					$db->updateControllerStatus( $statusid->{stopping1}, $taskid );
+					$db->commit();
+				}
+			}
         }
         sleep 1;
+	}
+
 }
 
-#        my @running = $db->selectTaskRunning();
-#        for ( @running )
-#        {
-#            my ( $taskid, $executeid ) = @$_;
-#            $this->_updateTaskStatus( $taskid, $executeid );
-#        }
+sub _getSlaveStatus
+{
+    my ( $this, $ip, $deletetasks ) = @_;
 
-#    });
-#   $cv->recv;
+    use MYDan::Util::OptConf;
+    my %o =  MYDan::Util::OptConf->load()->dump('agent');
+    $o{user} = 'antden';
+    $o{sudo} = 'root';
+    my %query = ( 
+        code => 'antden', 
+        argv => +{ 
+            ctrl => 'status', 
+			deletetask => $deletetasks,
+        }, 
+        map{ $_ => $o{$_} }qw( user sudo ) 
+    );
+
+    my %result = MYDan::Agent::Client->new( @$ip )->run( %o, query => \%query );
+	print Dumper \%result;
+	#return ( defined $result{$hostip} &&  $result{$hostip} =~ /--- 0\n$/ ) ? 1 : 0;
+	my ( %res, %err );
+	for my $ip ( keys %result )
+	{
+		if( $result{$ip} =~ s/--- 0\n$// )
+		{
+			my $x = eval{ YAML::XS::Load $result{$ip} };
+			if( $x && ref $x eq 'HASH' )
+			{
+				#$res{$ip} = $x;
+				map{ $res{$_} = $x->{$_} } keys %$x;
+			}
+			else
+			{
+				$err{$ip} = 1;
+			}
+		}
+		else
+		{
+			$err{$ip} = 1;
+		}
+	}
+	return ( \%res, \%err );
 }
 
 # return 1 success
@@ -115,120 +173,54 @@ sub _controlSlave
     return ( defined $result{$hostip} &&  $result{$hostip} =~ /--- 0\n$/ ) ? 1 : 0;
 }
 
+=head3 start( $conf )
 
+  conf
+  ---
+  taskid: J.20191105.171023.154687.409.002
+  resources:
+    CPU:0: 2
+    GPU:1: 1
+    GPU:3: 1
+  task:
+    param:
+      exec: sleep 100
+    executer: exec
+    
+  ip
+  ---
+=cut
 
-#conf => +{
-#	task => +{
-#		type => 'exec',
-#		param => +{
-#			exec => 'sleep 100',
-#		}
-#	},
-#	count => 1,
-#	scheduler => +{
-#		algorithm => 'mydan',
-#       env => 'web1.0',
-#       resources => +{
-#           'GPU' => 2,
-#           'CPU' => 100,
-#       }
-#       ip => '' #may not exist
-#	}
-#}
-#
-#result:
-#	J.20191111.010101.000000.000.000
-#
 sub start
 {
-    my ( $this, $conf ) = @_;
-	my ($sec ,$usec ) = gettimeofday;
-	my $db =  $this->{db};
+	my ( $this, $conf, $ip ) = @_;
 
-	my @applyResources;
-	for( 1..$conf->{count})
-	{
-		my %ar = ( env => $conf->{scheduler}{env}, resources => $conf->{scheduler}{resources} );
-		$ar{ip} = $conf->{scheduler}{ip} if $conf->{scheduler}{ip};
-		my $jobid = sprintf "%s.%06d.%03d.%03d", POSIX::strftime( "J.%Y%m%d.%H%M%S", localtime( $sec ) ), $usec, rand( 1000 ), $_;
-		$ar{jobid} = $jobid;
-		$db->insertTask( $jobid, 'init', $$ );
+	eval{ YAML::XS::DumpFile "$this->{conf}/task/$conf->{taskid}",
+   		+{ task => $conf->{task}, resources => $conf->{resources}}; };
+	die "dump config fail: $@" if $@;
 
-		push @applyResources, \%ar;
-	}
-	$db->commit();
-
-	$this->_wait2applyResources();
-	my $algorithm = $conf->{resources}{algorithm} || 'mydan';
-	my $code = "$this->{code}/scheduler/$algorithm/applyResources";
-    print "code: $code\n";
-	$code = do $code;
-	
-	die "load code fail" unless $code && ref $code eq 'CODE';
-
-#$VAR1 = [
-#          {
-#            'jobid' => 'J.20191105.121610.527870.599.001',
-#            'resources' => {
-#                             'ip' => '127.0.0.1',
-#                             'resources' => {
-#                                              'GPU:2' => 1,
-#                                              'GPU:1' => 1,
-#                                              'CPU:0' => 2
-#                                            }
-#                           },
-#            'env' => 'web1.0'
-#          },
-#          {
-#            'jobid' => 'J.20191105.121610.527870.097.002',
-#            'env' => 'web1.0',
-#            'resources' => {
-#                             'resources' => {
-#                                              'CPU:0' => 2,
-#                                              'GPU:1' => 1,
-#                                              'GPU:2' => 1
-#                                            },
-#                             'ip' => '127.0.0.1'
-#                           }
-#          }
-#        ];
-#	or 
-#         undef
-#
-	my $r = &$code( \@applyResources );
-	die "applyResources fail" unless $r;
-	map{
-		$db->updateTaskStatus( 'gotResources', $_->{jobid} );
-	}@$r;
-	$db->commit();
-
-	for my $re ( @$r )
-	{
-		print "start task: $re->{jobid}\n";
-		my %config = ( %$re, task => $conf->{task} );
-		print Dumper \%config;
-        YAML::XS::DumpFile "/opt/mydan/dan/job/slave/conf/start/$config{jobid}", \%config;
-	}
+	$this->{db}->insertController( $conf->{taskid}, $ip );
+    $this->{db}->commit;
 }
 
-sub _wait2applyResources
-{
-	return 1;
-}
+=head3 stop( $conf )
+
+    conf
+    ---
+    taskid: J.20191105.171023.154687.409.002
+
+=cut
+
 sub stop
 {
-    my ( $this, $uuid ) = @_;
+	my ( $this, $conf ) = @_;
+
+	$this->{db}->updateControllerExpect( $this->{statusid}{stoped}, $conf->{taskid} );
+    $this->{db}->commit;
 }
 
-sub clog
-{
-    my ( $this, $uuid ) = @_;
-}
 
-sub log
-{
-    my ( $this, $uuid ) = @_;
-}
+
 
 
 1;

@@ -1,0 +1,41 @@
+#!/opt/mydan/perl/bin/perl -I/opt/AntDen/lib
+use strict;
+use warnings;
+use AntDen;
+
+use MYDan::Util::OptConf;
+use AntDen::Controller;
+
+use Time::HiRes 'gettimeofday';
+
+$| ++;
+
+$MYDan::Util::OptConf::THIS = 'antden';
+
+=head1 SYNOPSIS
+
+ $0 --ip 127.0.0.1
+
+=cut
+
+my %o = MYDan::Util::OptConf->load()->set( ip => '127.0.0.1' )->get( qw( ip=s ) )->dump();
+
+my ($sec ,$usec ) = gettimeofday;
+my $taskid = sprintf "%s.%06d.%03d.%03d", POSIX::strftime( "J.%Y%m%d.%H%M%S", localtime( $sec ) ), $usec, rand( 1000 ), 1;
+
+print "taskid: $taskid\n";
+AntDen::Controller->new( %{$o{controller}} )->start(
+    +{
+        taskid => $taskid,
+        resources => +{
+			'CPU:0' => 1,
+        },
+        task => +{
+            executer => 'exec',
+            param => +{
+				exec => 'sleep 100'
+			}
+        }	
+    },
+    $o{ip}
+);

@@ -40,8 +40,8 @@ my %define = (
         id => 'INTEGER PRIMARY KEY AUTOINCREMENT',
         taskid => 'TEXT NOT NULL',
         hostip => 'TEXT NOT NULL',
-        status => 'TEXT NOT NULL',#init, running, stoped,starting,stopping
-        expect => 'TEXT NOT NULL', #running stoped
+        status => 'INTEGER NOT NULL',#init, running, stoped,starting,stopping
+        expect => 'INTEGER NOT NULL', #running stoped
     ],
 );
 
@@ -61,7 +61,6 @@ my %stmt = (
     insertMachine => "insert into machine (`ip`,`hostname`,`env`,`status`,`heartbeat`) values(?,?,?,?,?)",
     insertResources => "insert into `resources` ( `ip`,`name`,`id`,`value`) values(?,?,?,?)",
 
-    insertController => "insert into controller (`taskid`,`hostip`,`status`,`expect`)values(?,?,'init','running')",
     updateMachineEnv => "update machine set env=? where ip=?",
     updateMachineHeartbeat => "update machine set heartbeat=? where ip=?",
     #ip, name, id, value, hostname, env
@@ -69,9 +68,15 @@ my %stmt = (
     selectAllocated => "select ip,name,id,value from allocated",
     insertAllocatedByJobid => "insert into allocated values(?,?,?,?,?)",
 
-    selectControllerWork => "select `taskid`,`hostip`,`status`,`expect` from controller where status != expect and status != 'starting' and status != 'stopping'",
+    selectControllerWork => "select `taskid`,`hostip`,`status`,`expect` from controller where expect>status",
+    selectControllerHostip => "select distinct `hostip` from controller",
 
+    updateControllerStatusSafe => "update controller set status=? where taskid=? and status<?",
     updateControllerStatus => "update controller set status=? where taskid=?",
+    updateControllerExpect => "update controller set expect=? where taskid=?",
+
+
+    insertController => "insert into controller (`taskid`,`hostip`,`status`,`expect`)values(?,?,2,5)",
 );
 
 sub new
