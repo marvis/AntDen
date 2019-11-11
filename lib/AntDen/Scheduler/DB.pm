@@ -29,12 +29,10 @@ my %define = (
         id => 'INTEGER PRIMARY KEY AUTOINCREMENT',
         jobid => 'TEXT NOT NULL',
         env => 'TEXT NOT NULL',
-        nice => 'TEXT NOT NULL',
-#taskcount
+        nice => 'INTEGER NOT NULL',
+        taskcount => 'INTEGER NOT NULL',
         resources => 'TEXT NOT NULL',
         status => 'TEXT NOT NULL', #queuing,cancelled,pause,allocated
-        starttime => 'TEXT NOT NULL',
-        finishtime => 'TEXT NOT NULL',
     ],
     controller => [
         id => 'INTEGER PRIMARY KEY AUTOINCREMENT',
@@ -47,22 +45,30 @@ my %define = (
 
 my %stmt = (
 
-    insertQueue => "insert into queue ( `jobid`,`env`,`nice`,`resources`,`status`,`starttime`,`finishtime`) values(?,?,?,?,'queuing',?,'')",
-    updateQueueNice => "update queue set nice=? where jobid=?",
-    updateQueueStatus2Allocated => "update queue set status='allocated' where jobid=?",
-    cancelJob => "update queue set status='cancelled' where jobid=? and status !='allocated'",
-    pauseJob => "update queue set status='pause' where jobid=? and status =='queuing'",
+    insertQueue => "insert into queue ( `jobid`,`env`,`nice`,`taskcount`,`resources`,`status` ) values(?,?,?,?,?,'queuing')",
     queuingJob => "update queue set status='queuing' where jobid=? and status =='pause'",
-    stopJobExpect => "update controller set expect='stoped' where taskid like ?",
+    pauseJob => "update queue set status='pause' where jobid=? and status =='queuing'",
+    cancelJob => "update queue set status='cancelled' where jobid=? and status !='allocated'",
 
-    selectQueueWork => "select `jobid` from queue where status='queuing' order by nice,id",
+    showQueue => "select `id`,`jobid`,`env`,`nice`,`taskcount`,`resources`,`status` from queue where status!='allocated'",
 
-    selectMachineByIp => "select * from machine where ip=?",
+    updateQueueNice => "update queue set nice=? where jobid=?",
+    stopJobExpect => "update controller set expect=8 where taskid like ?",
+
+	##
     insertMachine => "insert into machine (`ip`,`hostname`,`env`,`status`,`heartbeat`) values(?,?,?,?,?)",
     insertResources => "insert into `resources` ( `ip`,`name`,`id`,`value`) values(?,?,?,?)",
 
     updateMachineEnv => "update machine set env=? where ip=?",
     updateMachineHeartbeat => "update machine set heartbeat=? where ip=?",
+
+
+    updateQueueStatus2Allocated => "update queue set status='allocated' where jobid=?",
+
+    selectQueueWork => "select `jobid` from queue where status='queuing' order by nice,id",
+
+    selectMachineByIp => "select * from machine where ip=?",
+
     #ip, name, id, value, hostname, env
     selectResourcesAndActiveMachineInfo => "select resources.ip,hostname,env,name,id,value from machine,resources where machine.ip=resources.ip and status='active'",
     selectAllocated => "select ip,name,id,value from allocated",

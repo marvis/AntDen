@@ -19,6 +19,13 @@ my @cmd =
 
     [ 'submitjob', "提交作业任务", 'scheduler/bin/submitjob' ],
     [ 'renicejob', "调整已提交作业的优先级", 'scheduler/bin/renicejob' ],
+
+    [ 'queuingjob', "把暂停的作业加回队列", 'scheduler/bin/queuingjob' ],
+    [ 'pausejob', "暂停作业的排队", 'scheduler/bin/pausejob' ],
+    [ 'canceljob', "取消作业", 'scheduler/bin/canceljob' ],
+
+    [ 'showqueue', "查看队列", 'scheduler/bin/showqueue' ],
+    [ 'stopjob', "停止正在运行的作业", 'scheduler/bin/stopjob' ],
 );
 
 AntDen::Util::Command->new( $name => \@cmd,
