@@ -1,0 +1,34 @@
+#!/opt/mydan/perl/bin/perl -I/opt/AntDen/lib
+use strict;
+use warnings;
+use AntDen;
+
+use MYDan::Util::OptConf;
+use AntDen::Scheduler;
+
+$| ++;
+
+$MYDan::Util::OptConf::THIS = 'antden';
+
+=head1 SYNOPSIS
+
+ $0 
+
+=cut
+
+my $option = MYDan::Util::OptConf->load();
+my %o = $option->get()->dump();
+
+my ( $machine, $resources )= AntDen::Scheduler->new( %{$o{scheduler}} )->getMachine();
+map{
+    print "=" x 75, "\n";
+    printf "ip: %s\t hostname: %s\t env: %s\tstatus:%s\n", @$_;
+    print "-" x 75, "\n";
+
+    my $ip = $_->[0];
+    if( my $res = $resources->{$ip} )
+    {
+    	unshift @$res, [qw(name id value )];
+	map{ printf "%s\n", join "\t", @$_; }@$res;
+    }
+}@$machine;
