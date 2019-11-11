@@ -1,0 +1,49 @@
+#!/opt/mydan/perl/bin/perl -I/opt/AntDen/lib
+use strict;
+use warnings;
+use AntDen;
+
+use MYDan::Util::OptConf;
+use AntDen::Scheduler;
+
+$| ++;
+
+$MYDan::Util::OptConf::THIS = 'antden';
+
+=head1 SYNOPSIS
+
+ $0 --jobid jobid
+
+=cut
+
+my $option = MYDan::Util::OptConf->load();
+my %o = $option->get( qw( jobid=s ) )->dump();
+
+$option->assert( 'jobid' );
+
+my ( $queue, $ctrl )= AntDen::Scheduler->new( %{$o{scheduler}} )->showJob( $o{jobid} );
+
+print "=" x 75, "\n";
+printf "id: %s\t env: %s\t nice: %s\ttaskcount:%s\tresources: %s\tstatus: %s\n", @{$queue->[0]};
+
+exit unless $ctrl;
+print "-" x 75, "\n";
+
+my %statusid = (
+    standby => 1,
+    init => 2,
+    starting1 => 3,
+    starting => 4,
+    running => 5,
+    stopping1 => 6,
+    stopping => 7,
+    stoped => 8,
+);
+
+my %idstatus = map{ $statusid{$_} => $_ }keys %statusid;
+
+unshift @$ctrl, [qw( taskid hostip status expect )];
+map{
+
+     printf "%s\n", join "\t", map{ $idstatus{$_} || $_ }@$_;
+}@$ctrl;

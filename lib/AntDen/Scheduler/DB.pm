@@ -51,6 +51,8 @@ my %stmt = (
     cancelJob => "update queue set status='cancelled' where jobid=? and status !='allocated'",
 
     showQueue => "select `id`,`jobid`,`env`,`nice`,`taskcount`,`resources`,`status` from queue where status!='allocated'",
+    showQueueByJobid => "select `id`,`env`,`nice`,`taskcount`,`resources`,`status` from queue where jobid=?",
+    showControllerByJobid => "select `taskid`,`hostip`,`status`,`expect` from controller where taskid like ?",
 
     updateQueueNice => "update queue set nice=? where jobid=?",
     stopJobExpect => "update controller set expect=8 where taskid like ?",

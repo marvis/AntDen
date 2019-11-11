@@ -174,6 +174,21 @@ sub getQueue
 	return @queue;
 }
 
+=head3 showJob
+
+
+=cut 
+sub showJob
+{
+    my ( $this, $jobid ) = @_;
+    my @queue = $this->{db}->showQueueByJobid( $jobid );
+    my @ctrl = $this->{db}->showControllerByJobid( "$jobid%" );
+	$this->{db}->commit;
+	return ( \@queue, \@ctrl );
+}
+
+
+
 =head3 showMachine
 
 =cut 
